@@ -391,3 +391,63 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Digital Soil Moisture Sensor with Raspberry Pi
+# ----------------------------------------------
+# Step 1: Hardware Setup
+#   • VCC → 3.3V or 5V (check sensor rating)
+#   • GND → GND (pin 6 or any ground)
+#   • D0  → GPIO17 (pin 11)
+#     – Sensor outputs LOW when soil is wet, HIGH when dry
+#     – Use built-in potentiometer to adjust threshold
+#
+# Step 2: Software Setup
+#   • No extra libraries needed. RPi.GPIO comes with Raspberry Pi OS.
+#
+# Step 3: Run
+#   • Save this file as soil_sensor_digital.py
+#   • Execute: `python3 soil_sensor_digital.py`
+
+import RPi.GPIO as GPIO
+import time
+
+# Define GPIO pin
+SOIL_SENSOR_PIN = 17  # BCM 17 = physical pin 11
+
+def setup():
+    """Set up the GPIO pin as input with pull-up resistor."""
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(SOIL_SENSOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+def read_sensor():
+    """Read and print the status from the digital soil sensor."""
+    if GPIO.input(SOIL_SENSOR_PIN) == GPIO.LOW:
+        print("🌱 Soil is moist (wet).")
+    else:
+        print("🌵 Soil is dry!")
+
+def main():
+    """Main loop: read sensor every second."""
+    print("Starting digital soil moisture monitoring… (press Ctrl+C to exit)\n")
+    setup()
+    try:
+        while True:
+            read_sensor()
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nMonitoring stopped by user.")
+    finally:
+        GPIO.cleanup()
+
+if __name__ == "__main__":
+    main()
