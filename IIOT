@@ -451,3 +451,32 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+#!/usr/bin/env python3
+import time
+from Adafruit_BMP.BMP085 import BMP085  # <- classic driver
+
+def setup_sensor():
+    # The constructor will auto-detect I2C bus and address 0x77
+    return BMP085()
+
+def read_and_print(sensor):
+    temp_c    = sensor.readTemperature()  # °C
+    pressure  = sensor.readPressure()     # Pa
+    altitude  = sensor.readAltitude()     # m (uses sea-level default 1013.25 hPa)
+    print(f"Temp: {temp_c:0.1f} °C | Pressure: {pressure/100:0.1f} hPa | Altitude: {altitude:0.1f} m")
+
+def main():
+    print("Starting BMP180 readings… (Ctrl+C to exit)")
+    sensor = setup_sensor()
+    try:
+        while True:
+            read_and_print(sensor)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("Exiting…")
+
+if __name__ == "__main__":
+    main()
