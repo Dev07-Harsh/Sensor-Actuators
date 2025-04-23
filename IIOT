@@ -1,4 +1,32 @@
 #!/usr/bin/env python3
+import time
+from Adafruit_BMP.BMP085 import BMP085
+
+def setup_sensor():
+    # Force I2C bus 1
+    return BMP085(busnum=1)
+
+def read_and_print(sensor):
+    temp_c   = sensor.readTemperature()      # °C
+    pressure = sensor.readPressure() / 100.0  # hPa
+    altitude = sensor.readAltitude()         # m
+    print(f"Temp: {temp_c:0.1f} °C | Pressure: {pressure:0.1f} hPa | Altitude: {altitude:0.1f} m")
+
+def main():
+    print("Starting BMP180 readings… (Ctrl+C to exit)\n")
+    sensor = setup_sensor()
+    try:
+        while True:
+            read_and_print(sensor)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("\nExiting…")
+
+if __name__ == "__main__":
+    main()
+
+
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # DHT11 Sensor Study with Raspberry Pi
