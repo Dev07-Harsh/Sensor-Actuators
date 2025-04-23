@@ -1,0 +1,313 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# DHT11 Sensor Study with Raspberry Pi
+# ------------------------------------
+# Step 1: Hardware Setup
+#   • Connect DHT11 VCC → 5V (pin 2 or 4)
+#   • Connect DHT11 GND → GND (pin 6, 9, 14, 20, 25, 30, 34, or 39)
+#   • Connect DHT11 DATA → GPIO4 (pin 7) with a 10 kΩ pull-up resistor between DATA and VCC
+#
+# Step 2: Software Setup
+#   • Make sure Python3 is installed: `sudo apt-get update && sudo apt-get install python3`
+#   • Install Adafruit_DHT library: `pip3 install Adafruit_DHT`
+#
+# Step 3: Permissions
+#   • No special permissions are required—just run with python3.
+#
+# Step 4: Run
+#   • Save this file as dht11_read.py
+#   • Execute: `python3 dht11_read.py`
+#
+# The script will print temperature in °C and relative humidity in % every 2 seconds.
+
+import Adafruit_DHT
+import time
+
+# Define the sensor type and GPIO pin
+DHT_SENSOR = Adafruit_DHT.DHT11
+DHT_PIN = 4  # GPIO4 is physical pin 7
+
+def read_and_print():
+    """
+    Reads from the DHT11 sensor and prints the results.
+    Retries up to 15 times per read to get a good measurement.
+    """
+    humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+    if humidity is not None and temperature is not None:
+        # Format to one decimal place
+        print(f"Temperature: {temperature:0.1f} °C | Humidity: {humidity:0.1f} %")
+    else:
+        print("⚠️  Failed to retrieve data from DHT11 sensor")
+
+def main():
+    """
+    Main loop: read every 2 seconds until the user interrupts (Ctrl+C).
+    """
+    print("Starting DHT11 sensor read… (press Ctrl+C to exit)\n")
+    try:
+        while True:
+            read_and_print()
+            time.sleep(2)  # Delay between reads
+    except KeyboardInterrupt:
+        print("\nProgram terminated by user. Goodbye!")
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# HC-SR04 Ultrasonic Sensor Study with Raspberry Pi
+# ------------------------------------------------
+# Step 1: Hardware Setup
+#   • VCC → 5V (pin 2 or 4)
+#   • GND → GND (pin 6, 9, 14, 20, 25, 30, 34, or 39)
+#   • TRIG → GPIO23 (pin 16)
+#   • ECHO → GPIO24 (pin 18) **(use a 1 kΩ resistor in series or a voltage divider to protect the Pi)**
+#
+# Step 2: Software Setup
+#   • Update packages: 
+#       sudo apt-get update
+#       sudo apt-get install python3-rpi.gpio
+#   • (Optional) If using pip: 
+#       pip3 install RPi.GPIO
+#
+# Step 3: Permissions
+#   • Make sure to run with root privileges or use `sudo`:
+#       sudo python3 hcsr04_read.py
+#
+# Step 4: Run
+#   • Save this file as hcsr04_read.py
+#   • Execute: `sudo python3 hcsr04_read.py`
+#
+# The script will print the measured distance in centimeters every second.
+
+import RPi.GPIO as GPIO
+import time
+
+# Define GPIO pins
+TRIG_PIN = 23  # GPIO23, physical pin 16
+ECHO_PIN = 24  # GPIO24, physical pin 18
+
+def setup():
+    """GPIO setup: TRIG as output, ECHO as input."""
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(TRIG_PIN, GPIO.OUT)
+    GPIO.setup(ECHO_PIN, GPIO.IN)
+    # Ensure trigger is low to start
+    GPIO.output(TRIG_PIN, False)
+    time.sleep(2)  # allow sensor to settle
+
+def measure_distance():
+    """
+    Send a 10µs pulse to TRIG, measure the time until ECHO goes high → low,
+    and compute distance based on the speed of sound.
+    """
+    # 1. Send trigger pulse
+    GPIO.output(TRIG_PIN, True)
+    time.sleep(0.00001)  # 10 microseconds
+    GPIO.output(TRIG_PIN, False)
+
+    # 2. Wait for echo to go high
+    start_time = time.time()
+    while GPIO.input(ECHO_PIN) == 0:
+        start_time = time.time()
+
+    # 3. Wait for echo to go low
+    stop_time = time.time()
+    while GPIO.input(ECHO_PIN) == 1:
+        stop_time = time.time()
+
+    # 4. Calculate pulse duration
+    pulse_duration = stop_time - start_time
+
+    # 5. Distance calculation:
+    #    distance = (pulse_duration * speed_of_sound) / 2
+    #    Speed of sound ≈ 34300 cm/s
+    distance_cm = (pulse_duration * 34300) / 2
+
+    return distance_cm
+
+def main():
+    """Main loop: measure and print distance every second."""
+    print("Starting HC-SR04 distance measurements… (press Ctrl+C to exit)\n")
+    try:
+        while True:
+            dist = measure_distance()
+            print(f"Distance: {dist:.1f} cm")
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nMeasurement stopped by user.")
+    finally:
+        GPIO.cleanup()
+
+if __name__ == "__main__":
+    setup()
+    main()
+
+
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# IR Obstacle/Proximity Sensor Study with Raspberry Pi
+# ---------------------------------------------------
+# Step 1: Hardware Setup
+#   • VCC → 5V (pin 2 or 4)
+#   • GND → GND (pin 6, 9, 14, 20, 25, 30, 34 or 39)
+#   • OUT → GPIO17 (pin 11)
+#     – The module outputs LOW when an object is detected, HIGH when clear.
+#     – Some modules have a potentiometer to adjust sensitivity.
+#
+# Step 2: Software Setup
+#   • Update packages:
+#       sudo apt-get update
+#       sudo apt-get install python3-rpi.gpio
+#   • Or via pip:
+#       pip3 install RPi.GPIO
+#
+# Step 3: Permissions
+#   • Run with root privileges or via sudo:
+#       sudo python3 ir_sensor_read.py
+#
+# Step 4: Run
+#   • Save this file as ir_sensor_read.py
+#   • Execute: `sudo python3 ir_sensor_read.py`
+#
+# The script polls the IR sensor every 0.2 seconds and prints detection status.
+
+import RPi.GPIO as GPIO
+import time
+
+# Define GPIO pin for IR sensor output
+IR_PIN = 17  # BCM pin 17 (physical pin 11)
+
+def setup():
+    """Configure GPIO: IR_PIN as input with internal pull-up resistor."""
+    GPIO.setmode(GPIO.BCM)
+    # Use pull-up so OUT goes LOW when object is detected
+    GPIO.setup(IR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+def read_ir():
+    """
+    Read the digital output:
+      • GPIO.input(IR_PIN) == 0 → object detected
+      • GPIO.input(IR_PIN) == 1 → no object
+    """
+    state = GPIO.input(IR_PIN)
+    if state == GPIO.LOW:
+        print("🔴 Obstacle detected!")
+    else:
+        print("🟢 No obstacle detected.")
+
+def main():
+    """Main loop: read IR sensor until interrupted."""
+    print("Starting IR sensor monitoring… (press Ctrl+C to exit)\n")
+    try:
+        while True:
+            read_ir()
+            time.sleep(0.2)  # Poll interval
+    except KeyboardInterrupt:
+        print("\nProgram interrupted by user.")
+    finally:
+        GPIO.cleanup()  # Reset GPIO settings
+
+if __name__ == "__main__":
+    setup()
+    main()
+
+
+
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# BMP180 Barometric Pressure & Temperature Sensor Study with Raspberry Pi
+# ----------------------------------------------------------------------
+# Step 1: Hardware Setup (I²C Interface)
+#   • VCC → 3.3V (pin 1)
+#   • GND → GND (pin 6, 9, 14, 20, 25, 30, 34, or 39)
+#   • SCL → GPIO3  (pin 5)
+#   • SDA → GPIO2  (pin 3)
+#   • (No pull-ups needed if your Pi’s I²C bus already has them)
+#
+# Step 2: Enable I²C on the Pi
+#   • Run: `sudo raspi-config`
+#   • Navigate to “Interface Options” → “I2C” → Enable
+#   • Reboot if prompted
+#
+# Step 3: Software Setup
+#   • Update & install prerequisites:
+#       sudo apt-get update
+#       sudo apt-get install -y python3-pip python3-smbus i2c-tools
+#   • Verify sensor is visible:
+#       sudo i2cdetect -y 1
+#       # You should see “77” in the address grid (0x77)
+#   • Install Adafruit CircuitPython BMP085/BMP180 library:
+#       pip3 install adafruit-circuitpython-bmp085
+#
+# Step 4: Permissions
+#   • No special permissions needed once I2C is enabled.
+#
+# Step 5: Run
+#   • Save this file as bmp180_read.py
+#   • Execute: `python3 bmp180_read.py`
+#
+# The script will print temperature (°C), pressure (hPa), and approximate altitude (m)
+# every 2 seconds until you interrupt (Ctrl+C).
+
+import time
+import board
+import busio
+import adafruit_bmp085  # CircuitPython driver for BMP085/BMP180
+
+def setup_sensor():
+    """
+    Initialize I2C bus and BMP180 sensor.
+    Returns an Adafruit_BMP085.BMP085 object.
+    """
+    # Create I2C bus connection on default SCL/SDA pins
+    i2c = busio.I2C(board.SCL, board.SDA)
+    # Initialize BMP180 over I2C
+    sensor = adafruit_bmp085.Adafruit_BMP085_I2C(i2c)
+    # (Optional) You can set an oversampling value for higher precision:
+    # sensor.overscan = 2  # 0–3 (higher = slower, more precise)
+    return sensor
+
+def read_and_print(sensor):
+    """
+    Reads temperature, pressure, and calculates altitude,
+    then prints formatted values.
+    """
+    temp_c = sensor.temperature          # in °C
+    pressure_hpa = sensor.pressure       # in hPa
+    # Approximate altitude based on standard sea-level pressure (1013.25 hPa):
+    altitude_m = sensor.altitude         # in meters
+
+    # Print with one decimal place
+    print(f"Temperature: {temp_c:0.1f} °C | Pressure: {pressure_hpa:0.1f} hPa | Altitude: {altitude_m:0.1f} m")
+
+def main():
+    """
+    Main loop: initialize sensor, then read every 2 seconds
+    until the user presses Ctrl+C.
+    """
+    print("Starting BMP180 readings… (press Ctrl+C to exit)\n")
+    sensor = setup_sensor()
+    try:
+        while True:
+            read_and_print(sensor)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("\nProgram terminated by user. Cleaning up and exiting.")
+    # No GPIO cleanup needed for I2C
+    # End of program
+
+if __name__ == "__main__":
+    main()
