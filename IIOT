@@ -311,3 +311,83 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Soil Moisture Sensor with MCP3008 ADC on Raspberry Pi
+# -----------------------------------------------------
+# Step 1: Hardware Setup
+#   • Soil sensor (analog out) → CH0 on MCP3008
+#   • MCP3008 VDD, VREF → 3.3V (pin 1)
+#   • MCP3008 AGND, DGND → GND (pin 6)
+#   • MCP3008 CLK → GPIO11 (pin 23)
+#   • MCP3008 DOUT → GPIO9  (pin 21)
+#   • MCP3008 DIN → GPIO10 (pin 19)
+#   • MCP3008 CS  → GPIO8  (pin 24)
+#   • Soil sensor VCC → 3.3V or 5V (check your sensor)
+#   • Soil sensor GND → GND
+#
+# Step 2: Software Setup
+#   • Install SPI and ADC libraries:
+#       sudo apt-get update
+#       sudo apt-get install python3-pip
+#       pip3 install adafruit-circuitpython-mcp3xxx
+#
+# Step 3: Enable SPI
+#   • Run: `sudo raspi-config`
+#   • Go to “Interface Options” → “SPI” → Enable
+#   • Reboot if prompted
+#
+# Step 4: Run
+#   • Save this file as soil_sensor_read.py
+#   • Run it: `python3 soil_sensor_read.py`
+
+import time
+import busio
+import digitalio
+import board
+from adafruit_mcp3xxx.mcp3008 import MCP3008
+from adafruit_mcp3xxx.analog_in import AnalogIn
+import adafruit_mcp3xxx.mcp3008 as MCP
+
+def setup_sensor():
+    """Initialize SPI bus and MCP3008 ADC, return soil sensor channel."""
+    spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+    cs = digitalio.DigitalInOut(board.D8)  # Chip Select (GPIO8)
+    mcp = MCP3008(spi, cs)
+    soil_channel = AnalogIn(mcp, MCP.P0)  # Connect sensor to CH0
+    return soil_channel
+
+def read_and_print(soil_channel):
+    """
+    Read analog voltage and print it along with approximate moisture %.
+    Dry soil gives higher value, wet soil lower.
+    """
+    raw_value = soil_channel.value  # 16-bit value (0–65535)
+    voltage = soil_channel.voltage  # in Volts
+
+    # Estimate moisture level as a percent (adjust based on calibration)
+    # Lower value = wetter soil
+    # Map raw value to a 0–100% scale (this is approximate)
+    moisture_percent = 100 - ((raw_value / 65535.0) * 100)
+
+    print(f"Voltage: {voltage:.2f} V | Raw: {raw_value} | Moisture: {moisture_percent:.1f} %")
+
+def main():
+    """Main loop to read soil moisture sensor every 2 seconds."""
+    print("Starting soil moisture monitoring… (press Ctrl+C to exit)\n")
+    soil_channel = setup_sensor()
+    try:
+        while True:
+            read_and_print(soil_channel)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("\nMeasurement stopped by user.")
+
+if __name__ == "__main__":
+    main()
